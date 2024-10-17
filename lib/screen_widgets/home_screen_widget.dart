@@ -14,84 +14,49 @@ class HomeScreenWidget extends StatefulWidget {
 }
 
 class _HomeScreenWidgetState extends State<HomeScreenWidget> {
-  // Future<dynamic> gettodo() async {
-  //   var url = "https://api.nstack.in/v1/todos?page=1&limit=20";
-  //   var uri = Uri.parse(url);
-  //   var response = await http.get(uri);
-  //   print(response.statusCode);
-  //   print(response.body);
-
-  //   return jsonDecode(response.body);
-  // }
-
-  // Future<dynamic> posttodo() async {
-  //   var url = "https://api.nstack.in/v1/todos";
-
-  //   var uri = Uri.parse(url);
-  //   var response = await http.post(
-  //     uri,
-  //     body: jsonEncode(
-  //       {
-  //         "title": titleController.text,
-  //         "description": descriptionController.text,
-  //         "is_completed": false,
-  //       },
-  //     ),
-  //     headers: {"Content-Type": "application/json"},
-  //   );
-  //   print(response.statusCode);
-  // print(response.body);
-
-  //   if (response.statusCode == 201) {
-  //     return jsonDecode(response.body);
-  //   } else {
-  //     return response.statusCode;
-  //   }
-  // }
-
-  // var daa;
-  // da() {
-  //   posttodo().then((value) {
-  //     setState(() {
-  //       daa = value!;
-  //     });
-  //   });
-  // }
-
-  // List<dynamic>? getdaa;
-
-  // getda() {
-  //   gettodo().then((value) {
-  //     setState(() {
-  //       getdaa = value['items'];
-  //       // print(daa.runtimeType);
-  //     });
-  //   });
-  // }
   TextEditingController titleController = TextEditingController();
   TextEditingController descriptionController = TextEditingController();
 
-  List? data;
+  List? getData;
 
   Future<dynamic> getTodo() async {
-    String url = 'https://api.nstack.in/v1/todos?page=1&limit=10';
-    Uri uri = Uri.parse(url);
-    Response response = await http.get(uri);
-    if (response.statusCode == 200) {
-      var decode = jsonDecode(response.body)['items'];
+    String geturl = 'https://api.nstack.in/v1/todos?page=1&limit=10';
+    Uri geturi = Uri.parse(geturl);
+    Response getresponse = await http.get(geturi);
+    if (getresponse.statusCode == 200) {
+      var decode = jsonDecode(getresponse.body)['items'];
       return decode;
     } else {
-      print(response.statusCode);
+      print(getresponse.statusCode);
     }
+  }
+
+  getFecth() {
+    getTodo().then((value) {
+      setState(() {
+        getData = value;
+      });
+    });
+  }
+
+  Future<dynamic> postTodo() async {
+    String posturl = "https://api.nstack.in/v1/todos";
+    Uri posturi = Uri.parse(posturl);
+    Response postresponse = await http.post(
+      posturi,
+      body: jsonEncode({
+        "title": titleController.text,
+        "description": descriptionController.text,
+        "is_completed": false
+      }),
+      headers: {"Content-Type": "application/json"},
+    );
+    print(postresponse.statusCode);
   }
 
   @override
   void initState() {
-    getTodo().then((value) {
-      setState(() {
-        data = value;
-      });
-    });
+    getFecth();
     super.initState();
   }
 
@@ -107,44 +72,44 @@ class _HomeScreenWidgetState extends State<HomeScreenWidget> {
         ),
         centerTitle: true,
       ),
-      body: data == null
+      body: getData == null
           ? const Center(child: CircularProgressIndicator())
           : ListView.builder(
               shrinkWrap: true,
-              itemCount: data?.length,
-              itemBuilder: (context, index) {
-                return Container(
-                  margin: const EdgeInsets.only(top: 10, right: 10, left: 10),
-                  width: double.infinity,
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(5),
-                    color: Colors.black,
+              itemCount: getData?.length,
+              itemBuilder: (context, index) => Container(
+                margin: const EdgeInsets.only(top: 10, right: 10, left: 10),
+                width: double.infinity,
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(5),
+                  color: Colors.black,
+                ),
+                child: ListTile(
+                  leading: CircleAvatar(
+                    backgroundColor: kprimecolor,
+                    child: Text('${index + 1}'),
                   ),
-                  child: ListTile(
-                    leading: CircleAvatar(
-                      backgroundColor: kprimecolor,
-                      child: Text('${index + 1}'),
-                    ),
-                    title: Text(
-                      data![index]['title'].toString(),
-                      style: const TextStyle(
-                        fontWeight: FontWeight.bold,
-                        color: Color(0xff00CCB3),
-                      ),
-                    ),
-                    subtitle: Text(
-                      data![index]['description'].toString(),
-                      style: const TextStyle(
-                        color: Colors.white,
-                      ),
+                  title: Text(
+                    getData![index]['title'].toString(),
+                    style: const TextStyle(
+                      fontWeight: FontWeight.bold,
+                      color: Color(0xff00CCB3),
                     ),
                   ),
-                );
-              },
+                  subtitle: Text(
+                    getData![index]['description'].toString(),
+                    style: const TextStyle(
+                      color: Colors.white,
+                    ),
+                  ),
+                ),
+              ),
             ),
       floatingActionButton: FloatingActionButton.extended(
         backgroundColor: kprimecolor,
         onPressed: () {
+          titleController.clear();
+          descriptionController.clear();
           showModelBottomSheet(context);
         },
         shape: const StadiumBorder(),
@@ -186,8 +151,9 @@ class _HomeScreenWidgetState extends State<HomeScreenWidget> {
                     const Text(
                       "Todo Title",
                       style: TextStyle(
-                          fontWeight: FontWeight.bold,
-                          color: Color(0xff00CCB3)),
+                        fontWeight: FontWeight.bold,
+                        color: Color(0xff00CCB3),
+                      ),
                     ),
                     TextField(
                       controller: titleController,
@@ -211,8 +177,9 @@ class _HomeScreenWidgetState extends State<HomeScreenWidget> {
                     const Text(
                       "Todo Description",
                       style: TextStyle(
-                          fontWeight: FontWeight.bold,
-                          color: Color(0xff00CCB3)),
+                        fontWeight: FontWeight.bold,
+                        color: Color(0xff00CCB3),
+                      ),
                     ),
                     TextField(
                       maxLines: 4,
@@ -247,14 +214,7 @@ class _HomeScreenWidgetState extends State<HomeScreenWidget> {
                               'Cancel',
                               style: TextStyle(color: Colors.white),
                             ),
-                            onPressed: () {
-                              Navigator.pop(context);
-                              setState(() {
-                                print(data);
-                                // print(getdaa?.length);
-                                // gettodo();
-                              });
-                            },
+                            onPressed: () => Navigator.of(context).pop(),
                           ),
                         ),
                         const SizedBox(width: 10),
@@ -274,9 +234,10 @@ class _HomeScreenWidgetState extends State<HomeScreenWidget> {
                               style: TextStyle(color: Colors.white),
                             ),
                             onPressed: () {
-                              // setState(() {
-                              //   getda();
-                              // });
+                              setState(() {
+                                postTodo();
+                                getFecth();
+                              });
                               Navigator.pop(context);
                             },
                           ),
