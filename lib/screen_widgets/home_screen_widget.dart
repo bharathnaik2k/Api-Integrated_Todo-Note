@@ -1,10 +1,18 @@
 import 'dart:async';
 import 'dart:convert';
 
+// import 'dart:js';
+// import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/http.dart';
+import 'package:intl/intl.dart';
 import 'package:todo_note/utils/colors/kprime_colors.dart';
+
+// final view = View.of(context as BuildContext);
+// final viewPadding = view.padding;
+// final mediaPadding = MediaQuery.paddingOf(context as BuildContext);
 
 class HomeScreenWidget extends StatefulWidget {
   const HomeScreenWidget({super.key});
@@ -17,6 +25,15 @@ class _HomeScreenWidgetState extends State<HomeScreenWidget> {
   TextEditingController titleController = TextEditingController();
   TextEditingController descriptionController = TextEditingController();
 
+  //
+  TextEditingController updatetitleController = TextEditingController();
+  TextEditingController updatedescriptionController = TextEditingController();
+
+  update(var oneone, var twotwo) {
+    updatetitleController.text = oneone;
+    updatedescriptionController.text = twotwo;
+  }
+
   List? getData;
 
   Future<dynamic> getTodo() async {
@@ -25,6 +42,7 @@ class _HomeScreenWidgetState extends State<HomeScreenWidget> {
     Response getresponse = await http.get(geturi);
     if (getresponse.statusCode == 200) {
       var decode = jsonDecode(getresponse.body)['items'];
+      print(getresponse.statusCode);
       return decode;
     } else {
       print(getresponse.statusCode);
@@ -45,19 +63,86 @@ class _HomeScreenWidgetState extends State<HomeScreenWidget> {
     Response postresponse = await http.post(
       posturi,
       body: jsonEncode({
-        "title": titleController.text,
-        "description": descriptionController.text,
+        "title": titleController.text.trim(),
+        "description": descriptionController.text.trim(),
         "is_completed": false
       }),
       headers: {"Content-Type": "application/json"},
     );
+    if (postresponse.statusCode == 201) {
+      var snackBar = const SnackBar(
+        content: Text('Adding successfully'),
+        backgroundColor: Colors.green,
+      );
+      ScaffoldMessenger.of(context).showSnackBar(snackBar);
+      setState(() {
+        getFecth();
+      });
+    }
     print(postresponse.statusCode);
+  }
+
+  Future<dynamic> updateTodo(var todoNoteUpdateId) async {
+    String updateurl = 'https://api.nstack.in/v1/todos/$todoNoteUpdateId';
+    Uri updateuri = Uri.parse(updateurl);
+    var updatebody = {
+      "title": updatetitleController.text,
+      "description": updatedescriptionController.text,
+      "is_completed": false
+    };
+    Response updateresponse = await http.put(
+      updateuri,
+      body: jsonEncode(updatebody),
+      headers: {"Content-Type": "application/json"},
+    );
+    if (updateresponse.statusCode == 200) {
+      var snackBar = const SnackBar(
+        content: Text('Update successfully'),
+        backgroundColor: Colors.green,
+      );
+      ScaffoldMessenger.of(context).showSnackBar(snackBar);
+      setState(() {
+        getFecth();
+      });
+    } else {
+      print(updateresponse.statusCode);
+    }
+  }
+
+  Future<dynamic> deleteTodo(var todoNoteDeleteId) async {
+    String deleteurl = 'https://api.nstack.in/v1/todos/$todoNoteDeleteId';
+    Uri deleteuri = Uri.parse(deleteurl);
+    Response deleteresponse = await http.delete(
+      deleteuri,
+    );
+    if (deleteresponse.statusCode == 200) {
+      print(deleteresponse.statusCode);
+      var snackBar = const SnackBar(
+        content: Text('Deleted successfully!!'),
+        backgroundColor: Colors.green,
+      );
+      ScaffoldMessenger.of(context).showSnackBar(snackBar);
+      setState(() {
+        getFecth();
+      });
+    } else {
+      var snackBar = const SnackBar(
+        content: Text('Deleted Unsuccessfully!'),
+        backgroundColor: Colors.red,
+      );
+      ScaffoldMessenger.of(context).showSnackBar(snackBar);
+      print(deleteresponse.statusCode);
+    }
   }
 
   @override
   void initState() {
     getFecth();
     super.initState();
+  }
+
+  Future<void> refresh() async {
+    getFecth();
   }
 
   @override
@@ -68,49 +153,320 @@ class _HomeScreenWidgetState extends State<HomeScreenWidget> {
         backgroundColor: kprimecolor,
         title: const Text(
           "Todo Note",
-          style: TextStyle(color: Colors.white),
+          style: TextStyle(color: Colors.black),
         ),
         centerTitle: true,
       ),
-      body: getData == null
-          ? const Center(child: CircularProgressIndicator())
-          : ListView.builder(
-              shrinkWrap: true,
-              itemCount: getData?.length,
-              itemBuilder: (context, index) => Container(
-                margin: const EdgeInsets.only(top: 10, right: 10, left: 10),
-                width: double.infinity,
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(5),
-                  color: Colors.black,
-                ),
-                child: ListTile(
-                  leading: CircleAvatar(
-                    backgroundColor: kprimecolor,
-                    child: Text('${index + 1}'),
-                  ),
-                  title: Text(
-                    getData![index]['title'].toString(),
-                    style: const TextStyle(
-                      fontWeight: FontWeight.bold,
-                      color: Color(0xff00CCB3),
-                    ),
-                  ),
-                  subtitle: Text(
-                    getData![index]['description'].toString(),
-                    style: const TextStyle(
-                      color: Colors.white,
-                    ),
-                  ),
-                ),
-              ),
-            ),
+      body: RefreshIndicator(
+        onRefresh: () {
+          return refresh();
+        },
+        child: getData == null
+            ? const Center(child: CircularProgressIndicator())
+            : getData!.isEmpty
+                ? const Center(
+                    child: Text(
+                    "Empty Todo Note",
+                    style: TextStyle(color: Colors.white, fontSize: 25.0),
+                  ))
+                : ListView.builder(
+                    padding: const EdgeInsets.only(
+                        bottom: kFloatingActionButtonMargin + 65),
+                    // physics: const NeverScrollableScrollPhysics(),
+                    shrinkWrap: true,
+                    itemCount: getData?.length,
+                    itemBuilder: (context, index) {
+                      var dateValue = DateFormat("yyyy-MM-ddTHH:mm:ssZ")
+                          .parseUTC("${getData![index]["updated_at"]}")
+                          .toLocal();
+                      String formattedDate =
+                          DateFormat("hh:mm a dd MMM yyyy").format(dateValue);
+
+                      return Container(
+                        margin:
+                            const EdgeInsets.only(top: 10, right: 10, left: 10),
+                        width: double.infinity,
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(5),
+                          color: Colors.black,
+                        ),
+                        child: ListTile(
+                          contentPadding:
+                              const EdgeInsets.only(left: 14.0, right: 8.0),
+                          leading: CircleAvatar(
+                            backgroundColor: kprimecolor,
+                            child: Text('${index + 1}'),
+                          ),
+                          title: Text(
+                            overflow: TextOverflow.ellipsis,
+                            getData![index]['title'].toString(),
+                            style: const TextStyle(
+                              fontWeight: FontWeight.bold,
+                              // fontSize: 20,
+                              color: Color(0xff00CCB3),
+                            ),
+                          ),
+                          subtitle: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                getData![index]['description'].toString(),
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  // fontSize: 16
+                                ),
+                              ),
+                              const SizedBox(height: 3),
+                              Text(
+                                'Time :- ${formattedDate.substring(0, 8)}  •  Date :- ${formattedDate.substring(9, 20)}',
+                                style: const TextStyle(
+                                  color: Color.fromARGB(255, 177, 133, 0),
+                                  fontSize: 10.0,
+                                ),
+                              )
+                            ],
+                          ),
+                          trailing: PopupMenuButton(
+                            iconColor: Colors.white,
+                            itemBuilder: (context) {
+                              return [
+                                PopupMenuItem(
+                                  child: const Text("Edit"),
+                                  onTap: () {
+                                    showModalBottomSheet<void>(
+                                      shape: const RoundedRectangleBorder(),
+                                      isScrollControlled: true,
+                                      enableDrag: true,
+                                      backgroundColor: Colors.grey.shade900,
+                                      context: context,
+                                      builder: (BuildContext context) {
+                                        return Padding(
+                                          padding: const EdgeInsets.all(10),
+                                          child: MediaQuery(
+                                            data: MediaQueryData.fromView(
+                                                WidgetsBinding.instance.window),
+                                            child: SafeArea(
+                                              child: SizedBox(
+                                                // padding: const EdgeInsets.only(
+                                                //   top: 10,
+                                                // ),
+                                                height: MediaQuery.of(context)
+                                                    .size
+                                                    .height,
+                                                child: Center(
+                                                  child: Column(
+                                                    crossAxisAlignment:
+                                                        CrossAxisAlignment
+                                                            .start,
+                                                    children: <Widget>[
+                                                      // SizedBox(height: MediaQuery.of(context).size.height * 0.05),
+                                                      const Text(
+                                                        "Todo Title",
+                                                        style: TextStyle(
+                                                          fontWeight:
+                                                              FontWeight.bold,
+                                                          color:
+                                                              Color(0xff00CCB3),
+                                                        ),
+                                                      ),
+                                                      TextField(
+                                                        textCapitalization:
+                                                            TextCapitalization
+                                                                .sentences,
+                                                        maxLength: 40,
+                                                        style: const TextStyle(
+                                                            color:
+                                                                Colors.white),
+                                                        controller:
+                                                            updatetitleController,
+                                                        decoration:
+                                                            InputDecoration(
+                                                          contentPadding:
+                                                              const EdgeInsets
+                                                                  .only(
+                                                            right: 10,
+                                                            left: 10,
+                                                            top: 8,
+                                                            bottom: 8,
+                                                          ),
+                                                          hintText:
+                                                              "Enter title",
+                                                          hintStyle:
+                                                              const TextStyle(
+                                                            color: Colors.grey,
+                                                          ),
+                                                          border:
+                                                              OutlineInputBorder(
+                                                            borderRadius:
+                                                                BorderRadius
+                                                                    .circular(
+                                                                        5),
+                                                          ),
+                                                        ),
+                                                      ),
+                                                      const Text(
+                                                        "Todo Description",
+                                                        style: TextStyle(
+                                                          fontWeight:
+                                                              FontWeight.bold,
+                                                          color:
+                                                              Color(0xff00CCB3),
+                                                        ),
+                                                      ),
+                                                      TextField(
+                                                        onChanged: (value) {},
+                                                        textCapitalization:
+                                                            TextCapitalization
+                                                                .sentences,
+                                                        style: const TextStyle(
+                                                            color:
+                                                                Colors.white),
+                                                        maxLines: 5,
+                                                        controller:
+                                                            updatedescriptionController,
+                                                        decoration:
+                                                            InputDecoration(
+                                                          contentPadding:
+                                                              const EdgeInsets
+                                                                  .only(
+                                                                  right: 10,
+                                                                  left: 10,
+                                                                  top: 8,
+                                                                  bottom: 8),
+                                                          hintText:
+                                                              "Enter description",
+                                                          hintStyle:
+                                                              const TextStyle(
+                                                            color: Colors.grey,
+                                                          ),
+                                                          border:
+                                                              OutlineInputBorder(
+                                                            borderRadius:
+                                                                BorderRadius
+                                                                    .circular(
+                                                                        5),
+                                                          ),
+                                                        ),
+                                                      ),
+                                                      const SizedBox(
+                                                          height: 14),
+                                                      Row(
+                                                        children: [
+                                                          Expanded(
+                                                            child:
+                                                                ElevatedButton(
+                                                              style:
+                                                                  ButtonStyle(
+                                                                backgroundColor:
+                                                                    const MaterialStatePropertyAll(
+                                                                        Colors
+                                                                            .redAccent),
+                                                                shape:
+                                                                    MaterialStatePropertyAll(
+                                                                  RoundedRectangleBorder(
+                                                                    borderRadius:
+                                                                        BorderRadius
+                                                                            .circular(8),
+                                                                  ),
+                                                                ),
+                                                              ),
+                                                              child: const Text(
+                                                                'Cancel',
+                                                                style: TextStyle(
+                                                                    color: Colors
+                                                                        .white),
+                                                              ),
+                                                              onPressed: () {
+                                                                // titleController
+                                                                //     .clear();
+                                                                // descriptionController
+                                                                //     .clear();
+                                                                Navigator.of(
+                                                                        context)
+                                                                    .pop();
+                                                              },
+                                                            ),
+                                                          ),
+                                                          const SizedBox(
+                                                              width: 10),
+                                                          Expanded(
+                                                            child:
+                                                                ElevatedButton(
+                                                              style:
+                                                                  ButtonStyle(
+                                                                backgroundColor:
+                                                                    const MaterialStatePropertyAll(
+                                                                        Colors
+                                                                            .green),
+                                                                shape:
+                                                                    MaterialStatePropertyAll(
+                                                                  RoundedRectangleBorder(
+                                                                    borderRadius:
+                                                                        BorderRadius
+                                                                            .circular(8),
+                                                                  ),
+                                                                ),
+                                                              ),
+                                                              child: const Text(
+                                                                'Update Note',
+                                                                style: TextStyle(
+                                                                    color: Colors
+                                                                        .white),
+                                                              ),
+                                                              onPressed: () {
+                                                                setState(() {
+                                                                  updateTodo(getData![
+                                                                          index]
+                                                                      ['_id']);
+                                                                  getFecth();
+                                                                });
+
+                                                                Navigator.pop(
+                                                                    context);
+                                                                // titleController
+                                                                //     .clear();
+                                                                // descriptionController
+                                                                //     .clear();
+                                                              },
+                                                            ),
+                                                          ),
+                                                        ],
+                                                      ),
+                                                    ],
+                                                  ),
+                                                ),
+                                              ),
+                                            ),
+                                          ),
+                                        );
+                                      },
+                                    );
+
+                                    setState(() {
+                                      update(
+                                        getData![index]['title'],
+                                        getData![index]['description'],
+                                      );
+                                    });
+                                  },
+                                ),
+                                PopupMenuItem(
+                                  child: const Text("Delete"),
+                                  onTap: () {
+                                    deleteTodo(getData![index]["_id"]);
+                                  },
+                                ),
+                              ];
+                            },
+                          ),
+                        ),
+                      );
+                    }),
+      ),
       floatingActionButton: FloatingActionButton.extended(
         backgroundColor: kprimecolor,
         onPressed: () {
-          titleController.clear();
-          descriptionController.clear();
-          showModelBottomSheet(context);
+          addTodoshowModelBottomSheet(context);
         },
         shape: const StadiumBorder(),
         label: const Row(
@@ -124,127 +480,286 @@ class _HomeScreenWidgetState extends State<HomeScreenWidget> {
     );
   }
 
-  Future<void> showModelBottomSheet(BuildContext context) {
+  Future<void> addTodoshowModelBottomSheet(BuildContext context) {
     return showModalBottomSheet<void>(
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.only(
-          topLeft: Radius.circular(10),
-          topRight: Radius.circular(10),
-        ),
-      ),
+      shape: const RoundedRectangleBorder(),
       isScrollControlled: true,
       enableDrag: true,
-      showDragHandle: true,
       backgroundColor: Colors.grey.shade900,
       context: context,
       builder: (BuildContext context) {
-        return SingleChildScrollView(
-          child: Padding(
-            padding: const EdgeInsets.all(10.0),
-            child: Container(
-              padding: const EdgeInsets.all(10),
-              height: 600,
-              child: Center(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: <Widget>[
-                    const Text(
-                      "Todo Title",
-                      style: TextStyle(
-                        fontWeight: FontWeight.bold,
-                        color: Color(0xff00CCB3),
-                      ),
-                    ),
-                    TextField(
-                      controller: titleController,
-                      decoration: InputDecoration(
-                        contentPadding: const EdgeInsets.only(
-                          right: 10,
-                          left: 10,
-                          top: 8,
-                          bottom: 8,
-                        ),
-                        hintText: "Enter title",
-                        hintStyle: const TextStyle(
-                          color: Colors.grey,
-                        ),
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(5),
+        return Padding(
+          padding: const EdgeInsets.all(10),
+          child: MediaQuery(
+            data: MediaQueryData.fromView(WidgetsBinding.instance.window),
+            child: SafeArea(
+              child: SizedBox(
+                // padding: const EdgeInsets.only(
+                //   top: 10,
+                // ),
+                height: MediaQuery.of(context).size.height,
+                child: Center(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: <Widget>[
+                      // SizedBox(height: MediaQuery.of(context).size.height * 0.05),
+                      const Text(
+                        "Todo Title",
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          color: Color(0xff00CCB3),
                         ),
                       ),
-                    ),
-                    const SizedBox(height: 10),
-                    const Text(
-                      "Todo Description",
-                      style: TextStyle(
-                        fontWeight: FontWeight.bold,
-                        color: Color(0xff00CCB3),
-                      ),
-                    ),
-                    TextField(
-                      maxLines: 4,
-                      controller: descriptionController,
-                      decoration: InputDecoration(
-                        contentPadding: const EdgeInsets.only(
-                            right: 10, left: 10, top: 8, bottom: 8),
-                        hintText: "Enter description",
-                        hintStyle: const TextStyle(
-                          color: Colors.grey,
-                        ),
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(5),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 14),
-                    Row(
-                      children: [
-                        Expanded(
-                          child: ElevatedButton(
-                            style: ButtonStyle(
-                              backgroundColor: const MaterialStatePropertyAll(
-                                  Colors.redAccent),
-                              shape: MaterialStatePropertyAll(
-                                RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(8),
-                                ),
-                              ),
-                            ),
-                            child: const Text(
-                              'Cancel',
-                              style: TextStyle(color: Colors.white),
-                            ),
-                            onPressed: () => Navigator.of(context).pop(),
+                      TextField(
+                        textCapitalization: TextCapitalization.sentences,
+                        maxLength: 40,
+                        style: const TextStyle(color: Colors.white),
+                        controller: titleController,
+                        decoration: InputDecoration(
+                          contentPadding: const EdgeInsets.only(
+                            right: 10,
+                            left: 10,
+                            top: 8,
+                            bottom: 8,
+                          ),
+                          hintText: "Enter title",
+                          hintStyle: const TextStyle(
+                            color: Colors.grey,
+                          ),
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(5),
                           ),
                         ),
-                        const SizedBox(width: 10),
-                        Expanded(
-                          child: ElevatedButton(
-                            style: ButtonStyle(
-                              backgroundColor:
-                                  const MaterialStatePropertyAll(Colors.green),
-                              shape: MaterialStatePropertyAll(
-                                RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(8),
-                                ),
-                              ),
-                            ),
-                            child: const Text(
-                              'Add Note',
-                              style: TextStyle(color: Colors.white),
-                            ),
-                            onPressed: () {
-                              setState(() {
-                                postTodo();
-                                getFecth();
-                              });
-                              Navigator.pop(context);
-                            },
+                      ),
+                      const Text(
+                        "Todo Description",
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          color: Color(0xff00CCB3),
+                        ),
+                      ),
+                      TextField(
+                        onChanged: (value) {},
+                        textCapitalization: TextCapitalization.sentences,
+                        style: const TextStyle(color: Colors.white),
+                        maxLines: 5,
+                        controller: descriptionController,
+                        decoration: InputDecoration(
+                          contentPadding: const EdgeInsets.only(
+                              right: 10, left: 10, top: 8, bottom: 8),
+                          hintText: "Enter description",
+                          hintStyle: const TextStyle(
+                            color: Colors.grey,
+                          ),
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(5),
                           ),
                         ),
-                      ],
-                    ),
-                  ],
+                      ),
+                      const SizedBox(height: 14),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: ElevatedButton(
+                              style: ButtonStyle(
+                                backgroundColor: const MaterialStatePropertyAll(
+                                    Colors.redAccent),
+                                shape: MaterialStatePropertyAll(
+                                  RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(8),
+                                  ),
+                                ),
+                              ),
+                              child: const Text(
+                                'Cancel',
+                                style: TextStyle(color: Colors.white),
+                              ),
+                              onPressed: () {
+                                titleController.clear();
+                                descriptionController.clear();
+                                Navigator.of(context).pop();
+                              },
+                            ),
+                          ),
+                          const SizedBox(width: 10),
+                          Expanded(
+                            child: ElevatedButton(
+                              style: ButtonStyle(
+                                backgroundColor: const MaterialStatePropertyAll(
+                                    Colors.green),
+                                shape: MaterialStatePropertyAll(
+                                  RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(8),
+                                  ),
+                                ),
+                              ),
+                              child: const Text(
+                                'Add Note',
+                                style: TextStyle(color: Colors.white),
+                              ),
+                              onPressed: () {
+                                if (titleController.text.isEmpty) {
+                                } else {
+                                  setState(() {
+                                    postTodo();
+                                  });
+
+                                  Navigator.pop(context);
+                                  titleController.clear();
+                                  descriptionController.clear();
+                                }
+                              },
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  Future<void> updateoneshowModelBottomSheet(BuildContext context) {
+    return showModalBottomSheet<void>(
+      shape: const RoundedRectangleBorder(),
+      isScrollControlled: true,
+      enableDrag: true,
+      backgroundColor: Colors.grey.shade900,
+      context: context,
+      builder: (BuildContext context) {
+        return Padding(
+          padding: const EdgeInsets.all(10),
+          child: MediaQuery(
+            data: MediaQueryData.fromView(WidgetsBinding.instance.window),
+            child: SafeArea(
+              child: SizedBox(
+                // padding: const EdgeInsets.only(
+                //   top: 10,
+                // ),
+                height: MediaQuery.of(context).size.height,
+                child: Center(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: <Widget>[
+                      // SizedBox(height: MediaQuery.of(context).size.height * 0.05),
+                      const Text(
+                        "Todo Title",
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          color: Color(0xff00CCB3),
+                        ),
+                      ),
+                      TextField(
+                        textCapitalization: TextCapitalization.sentences,
+                        maxLength: 40,
+                        style: const TextStyle(color: Colors.white),
+                        controller: titleController,
+                        decoration: InputDecoration(
+                          contentPadding: const EdgeInsets.only(
+                            right: 10,
+                            left: 10,
+                            top: 8,
+                            bottom: 8,
+                          ),
+                          hintText: "Enter title",
+                          hintStyle: const TextStyle(
+                            color: Colors.grey,
+                          ),
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(5),
+                          ),
+                        ),
+                      ),
+                      const Text(
+                        "Todo Description",
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          color: Color(0xff00CCB3),
+                        ),
+                      ),
+                      TextField(
+                        onChanged: (value) {},
+                        textCapitalization: TextCapitalization.sentences,
+                        style: const TextStyle(color: Colors.white),
+                        maxLines: 5,
+                        controller: descriptionController,
+                        decoration: InputDecoration(
+                          contentPadding: const EdgeInsets.only(
+                              right: 10, left: 10, top: 8, bottom: 8),
+                          hintText: "Enter description",
+                          hintStyle: const TextStyle(
+                            color: Colors.grey,
+                          ),
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(5),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 14),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: ElevatedButton(
+                              style: ButtonStyle(
+                                backgroundColor: const MaterialStatePropertyAll(
+                                    Colors.redAccent),
+                                shape: MaterialStatePropertyAll(
+                                  RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(8),
+                                  ),
+                                ),
+                              ),
+                              child: const Text(
+                                'Cancel',
+                                style: TextStyle(color: Colors.white),
+                              ),
+                              onPressed: () {
+                                titleController.clear();
+                                descriptionController.clear();
+                                Navigator.of(context).pop();
+                              },
+                            ),
+                          ),
+                          const SizedBox(width: 10),
+                          Expanded(
+                            child: ElevatedButton(
+                              style: ButtonStyle(
+                                backgroundColor: const MaterialStatePropertyAll(
+                                    Colors.green),
+                                shape: MaterialStatePropertyAll(
+                                  RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(8),
+                                  ),
+                                ),
+                              ),
+                              child: const Text(
+                                'Add Note',
+                                style: TextStyle(color: Colors.white),
+                              ),
+                              onPressed: () {
+                                if (titleController.text.isEmpty) {
+                                } else {
+                                  setState(() {
+                                    postTodo();
+                                    getFecth();
+                                  });
+
+                                  Navigator.pop(context);
+                                  titleController.clear();
+                                  descriptionController.clear();
+                                }
+                              },
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
                 ),
               ),
             ),
