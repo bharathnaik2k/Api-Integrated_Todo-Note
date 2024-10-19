@@ -58,28 +58,33 @@ class _HomeScreenWidgetState extends State<HomeScreenWidget> {
   }
 
   Future<dynamic> postTodo() async {
-    String posturl = "https://api.nstack.in/v1/todos";
-    Uri posturi = Uri.parse(posturl);
-    Response postresponse = await http.post(
-      posturi,
-      body: jsonEncode({
-        "title": titleController.text.trim(),
-        "description": descriptionController.text.trim(),
-        "is_completed": false
-      }),
-      headers: {"Content-Type": "application/json"},
-    );
-    if (postresponse.statusCode == 201) {
-      var snackBar = const SnackBar(
-        content: Text('Adding successfully'),
-        backgroundColor: Colors.green,
+    try {
+      String posturl = "https://api.nstack.in/v1/todos";
+      Uri posturi = Uri.parse(posturl);
+      Response postresponse = await http.post(
+        posturi,
+        body: jsonEncode({
+          "title": titleController.text.trim(),
+          "description": descriptionController.text.trim(),
+          "is_completed": false
+        }),
+        headers: {"Content-Type": "application/json"},
       );
-      ScaffoldMessenger.of(context).showSnackBar(snackBar);
-      setState(() {
-        getFecth();
-      });
+      if (postresponse.statusCode == 201) {
+        var snackBar = const SnackBar(
+          content: Text('Adding successfully'),
+          backgroundColor: Colors.green,
+        );
+        ScaffoldMessenger.of(context).showSnackBar(snackBar);
+        setState(() {
+          getFecth();
+        });
+      }
+
+      print(postresponse.statusCode);
+    } catch (e) {
+      print(e.toString());
     }
-    print(postresponse.statusCode);
   }
 
   Future<dynamic> updateTodo(var todoNoteUpdateId) async {
@@ -158,6 +163,7 @@ class _HomeScreenWidgetState extends State<HomeScreenWidget> {
         centerTitle: true,
       ),
       body: RefreshIndicator(
+        
         onRefresh: () {
           return refresh();
         },
@@ -414,13 +420,25 @@ class _HomeScreenWidgetState extends State<HomeScreenWidget> {
                                                                         .white),
                                                               ),
                                                               onPressed: () {
-                                                                setState(() {
-                                                                  updateTodo(getData![
-                                                                          index]
-                                                                      ['_id']);
-                                                                  getFecth();
-                                                                });
-
+                                                                if (getData![index]
+                                                                            [
+                                                                            'title'] ==
+                                                                        updatetitleController
+                                                                            .text &&
+                                                                    getData![index]
+                                                                            [
+                                                                            'description'] ==
+                                                                        updatedescriptionController
+                                                                            .text) {
+                                                                } else {
+                                                                  setState(() {
+                                                                    updateTodo(getData![
+                                                                            index]
+                                                                        [
+                                                                        '_id']);
+                                                                    // getFecth();
+                                                                  });
+                                                                }
                                                                 Navigator.pop(
                                                                     context);
                                                                 // titleController
