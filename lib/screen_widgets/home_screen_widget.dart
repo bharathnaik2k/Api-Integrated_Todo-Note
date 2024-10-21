@@ -20,7 +20,7 @@ class _HomeScreenWidgetState extends State<HomeScreenWidget> {
   TextEditingController titleController = TextEditingController();
   TextEditingController descriptionController = TextEditingController();
 
-  Future<dynamic> getTodo() async {
+  Future<List?> getTodo() async {
     try {
       String geturl = getApiurl;
       Uri geturi = Uri.parse(geturl);
@@ -34,6 +34,7 @@ class _HomeScreenWidgetState extends State<HomeScreenWidget> {
     } catch (e) {
       print(e.toString());
     }
+    return null;
   }
 
   Future<dynamic> postTodo() async {
