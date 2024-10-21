@@ -1,12 +1,13 @@
 import 'dart:async';
 import 'dart:convert';
-import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/http.dart';
 import 'package:intl/intl.dart';
+import 'package:todo_note/utils/api/api_address.dart';
 import 'package:todo_note/utils/colors/kprime_colors.dart';
+import 'package:todo_note/utils/widgets/snackbar_messeage.dart';
 
 class HomeScreenWidget extends StatefulWidget {
   const HomeScreenWidget({super.key});
@@ -19,41 +20,25 @@ class _HomeScreenWidgetState extends State<HomeScreenWidget> {
   TextEditingController titleController = TextEditingController();
   TextEditingController descriptionController = TextEditingController();
 
-  dynamic _snackBar(String snackbartext, Color snackbarcolor) {
-    SnackBar snackBar = SnackBar(
-      content: Text(snackbartext),
-      backgroundColor: snackbarcolor,
-    );
-    ScaffoldMessenger.of(context).showSnackBar(snackBar);
-  }
-
   Future<dynamic> getTodo() async {
     try {
-      String geturl = 'https://api.nstack.in/v1/todos?page=1&limit=10';
+      String geturl = getApiurl;
       Uri geturi = Uri.parse(geturl);
       Response getresponse = await http.get(geturi);
       if (getresponse.statusCode == 200) {
-        var decode = jsonDecode(getresponse.body)['items'];
+        dynamic decode = jsonDecode(getresponse.body)['items'];
         return decode;
       } else {
         print(getresponse.statusCode);
       }
     } catch (e) {
-      if (e is SocketException) {
-        //treat SocketException
-        print("Socket exception: ${e.toString()}");
-      } else if (e is TimeoutException) {
-        //treat TimeoutException
-        print("Timeout exception: ${e.toString()}");
-      } else
-        print("Unhandled exception: ${e.toString()}");
-      return null;
+      print(e.toString());
     }
   }
 
   Future<dynamic> postTodo() async {
     try {
-      String posturl = "https://api.nstack.in/v1/todos";
+      String posturl = apiurl;
       Uri posturi = Uri.parse(posturl);
       Response postresponse = await http.post(
         posturi,
@@ -67,12 +52,12 @@ class _HomeScreenWidgetState extends State<HomeScreenWidget> {
         headers: {"Content-Type": "application/json"},
       );
       if (postresponse.statusCode == 201) {
-        _snackBar("Added successfully", Colors.green);
+        snackBarMesseage("Added successfully", Colors.green, context);
         setState(() {
-          _getFecth();
+          getFecth();
         });
       } else {
-        _snackBar("Adding Unsuccessfully", Colors.red);
+        snackBarMesseage("Adding Unsuccessfully", Colors.red, context);
       }
     } catch (e) {
       print(e.toString());
@@ -81,7 +66,7 @@ class _HomeScreenWidgetState extends State<HomeScreenWidget> {
 
   Future<dynamic> updateTodo(String todoNoteUpdateId) async {
     try {
-      String updateurl = 'https://api.nstack.in/v1/todos/$todoNoteUpdateId';
+      String updateurl = '$apiurl$todoNoteUpdateId';
       Uri updateuri = Uri.parse(updateurl);
       Response updateresponse = await http.put(
         updateuri,
@@ -95,12 +80,12 @@ class _HomeScreenWidgetState extends State<HomeScreenWidget> {
         headers: {"Content-Type": "application/json"},
       );
       if (updateresponse.statusCode == 200) {
-        _snackBar("Update successfully", Colors.green);
+        snackBarMesseage("Update successfully", Colors.green, context);
         setState(() {
-          _getFecth();
+          getFecth();
         });
       } else {
-        _snackBar("Update Unsuccessfully", Colors.red);
+        snackBarMesseage("Update Unsuccessfully", Colors.red, context);
       }
     } catch (e) {
       print(e.toString());
@@ -109,18 +94,18 @@ class _HomeScreenWidgetState extends State<HomeScreenWidget> {
 
   Future<dynamic> deleteTodo(String todoNoteDeleteId) async {
     try {
-      String deleteurl = 'https://api.nstack.in/v1/todos/$todoNoteDeleteId';
+      String deleteurl = '$apiurl$todoNoteDeleteId';
       Uri deleteuri = Uri.parse(deleteurl);
       Response deleteresponse = await http.delete(
         deleteuri,
       );
       if (deleteresponse.statusCode == 200) {
-        _snackBar("Delete successfully", Colors.green);
+        snackBarMesseage("Delete successfully", Colors.green, context);
         setState(() {
-          _getFecth();
+          getFecth();
         });
       } else {
-        _snackBar("Delete Unsuccessfully", Colors.red);
+        snackBarMesseage("Delete Unsuccessfully", Colors.red, context);
       }
     } catch (e) {
       print(e.toString());
@@ -129,7 +114,7 @@ class _HomeScreenWidgetState extends State<HomeScreenWidget> {
 
   List? getData;
 
-  _getFecth() {
+  getFecth() {
     getTodo().then((value) {
       setState(() {
         getData = value;
@@ -138,12 +123,12 @@ class _HomeScreenWidgetState extends State<HomeScreenWidget> {
   }
 
   Future<void> _refresh() async {
-    _getFecth();
+    getFecth();
   }
 
   @override
   void initState() {
-    _getFecth();
+    getFecth();
     super.initState();
   }
 
@@ -244,7 +229,7 @@ class _HomeScreenWidgetState extends State<HomeScreenWidget> {
                                         getData![index]['title'];
                                     descriptionController.text =
                                         getData![index]['description'];
-                                    addTodoshowModelBottomSheet(
+                                    showModelBottomSheet(
                                       true,
                                       getData![index]['_id'],
                                     );
@@ -305,7 +290,7 @@ class _HomeScreenWidgetState extends State<HomeScreenWidget> {
       floatingActionButton: FloatingActionButton.extended(
         backgroundColor: kprimecolor,
         onPressed: () {
-          addTodoshowModelBottomSheet(false, null);
+          showModelBottomSheet(false, null);
         },
         shape: const StadiumBorder(),
         label: const Row(
@@ -319,8 +304,7 @@ class _HomeScreenWidgetState extends State<HomeScreenWidget> {
     );
   }
 
-  Future<void> addTodoshowModelBottomSheet(
-      bool isUpdate, String? todoNoteUpdateId) {
+  Future<void> showModelBottomSheet(bool isUpdate, String? todoNoteUpdateId) {
     return showModalBottomSheet<void>(
       shape: const RoundedRectangleBorder(),
       isScrollControlled: true,
@@ -413,9 +397,9 @@ class _HomeScreenWidgetState extends State<HomeScreenWidget> {
                               style: TextStyle(color: Colors.white),
                             ),
                             onPressed: () {
+                              Navigator.of(context).pop();
                               titleController.clear();
                               descriptionController.clear();
-                              Navigator.of(context).pop();
                             },
                           ),
                         ),
@@ -438,8 +422,7 @@ class _HomeScreenWidgetState extends State<HomeScreenWidget> {
                               ),
                             ),
                             onPressed: () {
-                              if (titleController.text.isEmpty) {
-                              } else {
+                              if (titleController.text.isNotEmpty) {
                                 if (isUpdate == true) {
                                   updateTodo(todoNoteUpdateId!);
                                 } else {

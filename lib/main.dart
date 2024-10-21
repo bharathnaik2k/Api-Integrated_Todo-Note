@@ -8,18 +8,20 @@ class MyApp extends StatelessWidget {
   const MyApp({super.key});
 
   @override
-  Widget build(BuildContext context) => MaterialApp(
-        title: "Todo Note",
-        theme: ThemeData(
-          fontFamily: "Acme",
-          useMaterial3: true,
-          primarySwatch: Colors.blueGrey,
-        ),
-        debugShowCheckedModeBanner: false,
-        initialRoute: '/Splash_Screen',
-        routes: {
-          '/Splash_Screen': (context) => const SplashScreenWidget(),
-          '/Home_Screen': (context) => const HomeScreenWidget(),
-        },
-      );
+  Widget build(BuildContext context) {
+    return MaterialApp(
+      title: "Todo Note",
+      theme: ThemeData(
+        fontFamily: "Acme",
+        useMaterial3: true,
+        primarySwatch: Colors.blueGrey,
+      ),
+      debugShowCheckedModeBanner: false,
+      initialRoute: '/Splash_Screen',
+      routes: {
+        '/Splash_Screen': (context) => const SplashScreenWidget(),
+        '/Home_Screen': (context) => const HomeScreenWidget(),
+      },
+    );
+  }
 }
