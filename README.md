@@ -35,7 +35,8 @@ After adding note the message show "adding successfully" will appear in the snac
 - The added note can also be edited and deleted For that, I added a PopupMenuButton widget in the trailing of the listtile
 After clicking on the edit option, the showModelSottomSheet will open Which one do you want to edit? Title and description data will already be prefilled It can be edited and updated. It also shows same edited "Update successful" else 'Update unsuccessful"
 
-- Clicking on the delete option will show the alertDialog widget It will show if you are sure to delete There you can click on Delete or Cancel
+- Clicking on the delete option will show the alertDialog widget It will show if you are sure to delete There you can click on Delete or Cancel. If You Click On Delete it also it also shows same deleted "Delete Successful" else "Delete Unsuccessful"
+
 - ## other details
     - [Acme](https://fonts.google.com/specimen/Acme?query=acme) Font Style Is Used In This Project
     - I have used an SVG Image in Center of Splash Screen
