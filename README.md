@@ -5,7 +5,7 @@
  
 
 ### Nstack API Details
-Nstack offers Todo API For Free. But It Collects by defalt Only 10 Todo Notes. You can change the API End Point Up to 20 Todo Note.
+Nstack offers Todo API For Free. But It Collects by defalt **Only 10 Todo Notes**. You can change the API End Point Up to 20 Todo Note.
 - I have Changed at End Point in this to store 20 Todo Notes
 
 ## App Preview
@@ -36,3 +36,6 @@ After adding note the message show "adding successfully" will appear in the snac
 After clicking on the edit option, the showModelSottomSheet will open Which one do you want to edit? Title and description data will already be prefilled It can be edited and updated. It also shows same edited "Update successful" else 'Update unsuccessful"
 
 - Clicking on the delete option will show the alertDialog widget It will show if you are sure to delete There you can click on Delete or Cancel
+- ## other details
+    - [Acme](https://fonts.google.com/specimen/Acme?query=acme) Font Style Is Used In This Project
+    - I have used an SVG Image in Center of Splash Screen
